@@ -1,8 +1,9 @@
 const router = require("express").Router();
+const { authorized } = require("../auth/authmiddleware");
 const Users = require("./usersmodel");
-const { restricted } = require("../auth/authmiddleware");
 
-router.get("/", (req, res, next) => {
+
+router.get("/", authorized,(req, res, next) => {
   Users.findAll()
     .then((users) => {
       res.status(200).json(users);
@@ -10,28 +11,17 @@ router.get("/", (req, res, next) => {
     .catch(next);
 });
 
-router.get("/:id", (req, res, next) => {
-  Users.findById(req.params.id)
-    .then((user) => {
-      res.status(200).json(user);
-    })
-    .catch(next);
+router.get("/:userId", authorized, (req, res, next) => {
+  console.log(req.user);
+  res.status(200).json(req.user);
 });
 
-//this is redundant since the auth router handles adding users. I've left it in for dev use only. Really, I should have auth middleware to check if a user is an admin and restrict routes based on that. May add later as a stretch.
-router.post("/", restricted, (req, res, next) => {
-  Users.addNewUser(req.body)
-    .then((user) => {
-      res.status(201).json(user);
-    })
-    .catch(next);
-});
 
-router.patch("/:id", restricted, (req, res, next) => {
-  const { id } = req.params;
+router.patch("/:userId", authorized, (req, res, next) => {
+  const { userId } = req.params;
   const changes = req.body;
 
-  Users.updateUser(id, changes)
+  Users.updateUser(userId, changes)
     .then((user) => {
       if (user) {
         res.status(200).json(user);
@@ -42,8 +32,9 @@ router.patch("/:id", restricted, (req, res, next) => {
     .catch(next);
 });
 
-router.delete("/:id", restricted, (req, res, next) => {
-  Users.deleteUser(req.params.id)
+router.delete("/:userId", authorized,(req, res, next) => {
+  const { userId } = req.params;
+  Users.deleteUser(userId)
     .then((user) => {
       if (user > 0) {
         res.status(200).json({ message: "The user has been deleted." });
